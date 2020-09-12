@@ -10,6 +10,22 @@ ssh -i ~/.ssh/id_rsa.pub admin@mikrotik "ip dhcp-server lease print count-only w
 eth1=$(cat ~/rs_tmp/mikr_band_tmp.txt | grep fp-rx-bits-per-second | sed -e 's/ //g' -e 's/bps/;/g' -e 's/:/;/g' | cut -d ";" -f 2)
 eth2=$(cat ~/rs_tmp/mikr_band_tmp.txt | grep fp-rx-bits-per-second | sed -e 's/ //g' -e 's/bps/;/g' -e 's/:/;/g' | cut -d ";" -f 3)
 
+
+echo $eth1 $eth2
+
+if [[ $eth1 =~ [0-9|.]*b ]]; then eth1=0
+elif [[ $eth1 =~ [0-9|.]*k ]]; then eth1=1
+elif [[ $eth1 =~ [0-9|.]*M ]]; then eth1=$(echo $eth1 | sed -r 's/[^[0-9]*$//')
+elif [[ $eth1 == 0 ]]; then eth1=0
+else eth1=0
+fi
+
+if [[ $eth2 =~ [0-9|.]*b ]]; then eth2=0
+elif [[ $eth2 =~ [0-9|.]*k ]]; then eth2=1
+elif [[ $eth2 =~ [0-9|.]*M ]]; then eth2=$(echo $eth2 | sed -r 's/[^[0-9]*$//')
+elif [[ $eth2 == 0 ]]; then eth2=0
+else eth2=0
+fi
 band=$(echo "$eth1 - $eth2" | bc)
 
 echo "eth1=$eth1

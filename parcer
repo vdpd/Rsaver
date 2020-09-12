@@ -1,0 +1,19 @@
+#! /bin/bash
+
+if [ -d /tmp/rutr_saver_tmp ]; then
+	cd /tmp/rutr_saver_tmp
+else
+	mkdir /tmp/rutr_saver_tmp
+	cd /tmp/rutr_saver_tmp
+fi
+
+start_time=$(date)
+
+wget https://rutracker.org/forum/index.php
+if [ -e index.php ]; then
+	if [ -e index_scrape ]; then
+		mv index_scrape index_scrape_$(date +%F-%s)
+	fi
+	iconv -f cp1251 index.php | grep -a viewforum.php | sed -r 's/.+(.+viewforum.php\?f=)//' | cut -d "\"" -f 1 | uniq > index_scrape
+	rm index.php
+fi
