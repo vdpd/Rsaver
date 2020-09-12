@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# initializing tmp folder, and verifying created one.
+
 if [ -d /tmp/rutr_saver_tmp ]; then
 	cd /tmp/rutr_saver_tmp
 else
@@ -9,11 +11,34 @@ fi
 
 start_time=$(date)
 
+# scraping forum links
+
 wget https://rutracker.org/forum/index.php
 if [ -e index.php ]; then
 	if [ -e index_scrape ]; then
 		mv index_scrape index_scrape_$(date +%F-%s)
 	fi
-	iconv -f cp1251 index.php | grep -a viewforum.php | sed -r 's/.+(.+viewforum.php\?f=)//' | cut -d "\"" -f 1 | uniq > index_scrape
+	iconv -f cp1251 index.php | grep -a viewforum.php | sed -r 's/.+(.+viewforum.php\?f=)//' | cut -d "\"" -f 1 | sort -n | uniq > index_scrape
 	rm index.php
 fi
+
+forum_count=$(cat index_scrape | wc -l)
+i=o
+cat index_scrape > index_scrape_t0
+
+until ((i == $forum_count));do
+	forum_id=$(cat index_scrape | awk NR==$i)
+	clear
+	cat index_scrape | wc
+	echo "Scraping forum $i from $forum_count"
+	wget --output-document="forum.html" "https://rutracker.org/forum/viewforum.php?f=$forum_id"
+	iconv -f cp1251 forum.html | grep -a viewforum.php | sed -r 's/.+(.+viewforum.php\?f=)//' | cut -d "\"" -f 1 | cut -d "'" -f1 | cut -d"&" -f 1 | sort -n | uniq > forum_scrape
+	cat index_scrape forum_scrape | sort -n | uniq > uniq_scrape
+	cat index_scrape | sort -n | uniq > index_scrape_sort
+	comm -13 index_scrape_sort uniq_scrape 2>/dev/null >> index_scrape
+	forum_count=$(cat index_scrape | wc -l)
+	sleep 0.2
+	((++i))
+done
+
+rm forum_scrape forum.html index_scrape_sort uniq_scrape
