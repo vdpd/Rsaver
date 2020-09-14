@@ -48,10 +48,46 @@ done
 cat index_scrape > index_scrape_t1
 cat index_scrape | sort -n | uniq > final_scrape && rm index_scrape
 
-# cleaning temp files
+# cleaning temp files & logging
 
 rm forum_scrape forum.html index_scrape_sort uniq_scrape
 echo "[DEBUG][SCRAPER] Forum scraping; Start: $start_time; End: $(date); Forums scraped $(cat final_scrape | wc -l); " >> rutrsaver.log
 
 # scraping pages for topic lists
+
+start_time=$(date)
+forum_count=$(cat final_scrape | wc -l)
+i=o
+
+until ((i == $forum_count));do
+        forum_id=$(cat final_scrape | awk NR==$i)
+        while true; do
+                wget --output-document="page.html" "https://rutracker.org/forum/viewforum.php?f=${forum_id}&start=$pages"
+                error_p=$(iconv -f cp1251 page.html | grep "Подходящих тем или сообщений не найдено")
+                if [ "$error_p" ]; then
+                        clear
+                        echo "Error 404: $error_p"
+                        error_p=$devnull
+                        pages=0
+                        sleep 0.5
+                        break
+                else
+                        if [ -s page.html ]; then
+                                cat page.html | grep -a "viewtopic.php?t" | cut -d" " -f5 | grep view | sed -r 's/^[^[0-9]+//' | sed -r 's/.$//' >> page_scrape
+                                rm page.html
+                                pages=$((pages+50))
+                                clear
+                                echo "$( cat page_scrape | wc -l ) topic link parsed"
+                                echo "$forum_id from $forum_count forums parced"
+                        else
+                                break
+                        fi
+                fi
+        sleep 0.5
+        done
+        ((++i))
+done
+
+cat page_scrape | sort -n | uniq > topic_scrape && rm page_scrape 
+echo "[DEBUG][SCRAPER] Topic scraping; Start: $start_time; End: $(date); Topics scraped: $(cat topic_scrape | wc -l);" >> rutrsaver.log
 
