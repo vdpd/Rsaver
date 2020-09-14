@@ -22,6 +22,8 @@ if [ -e index.php ]; then
 	rm index.php
 fi
 
+# scraping RECURSIVE forum links , but there is annoying bug (though there are a lot of uniq everywhere, but final list isn`t uniq)
+
 forum_count=$(cat index_scrape | wc -l)
 i=o
 cat index_scrape > index_scrape_t0
@@ -41,4 +43,15 @@ until ((i == $forum_count));do
 	((++i))
 done
 
+# kostyl` to hotfix previous bug
+
+cat index_scrape > index_scrape_t1
+cat index_scrape | sort -n | uniq > final_scrape && rm index_scrape
+
+# cleaning temp files
+
 rm forum_scrape forum.html index_scrape_sort uniq_scrape
+echo "[DEBUG][SCRAPER] Forum scraping; Start: $start_time; End: $(date); Forums scraped $(cat final_scrape | wc -l); " >> rutrsaver.log
+
+# scraping pages for topic lists
+
