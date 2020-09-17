@@ -2,34 +2,52 @@
 
 mkdir ~/rs_tmp
 cd ~/rs_tmp
-eth1=0
-eth2=0
+eth1_rx=0
+eth2_rx=0
 
 ssh -i ~/.ssh/id_rsa.pub admin@mikrotik "ip dhcp-server lease print count-only where status=bound;interface monitor-traffic interface=ether1,ether2-master once" > mikr_band_tmp.txt
 
-eth1=$(cat ~/rs_tmp/mikr_band_tmp.txt | grep fp-rx-bits-per-second | sed -e 's/ //g' -e 's/bps/;/g' -e 's/:/;/g' | cut -d ";" -f 2)
-eth2=$(cat ~/rs_tmp/mikr_band_tmp.txt | grep fp-rx-bits-per-second | sed -e 's/ //g' -e 's/bps/;/g' -e 's/:/;/g' | cut -d ";" -f 3)
+eth1_rx=$(cat ~/rs_tmp/mikr_band_tmp.txt | grep fp-rx-bits-per-second | sed -e 's/ //g' -e 's/bps/;/g' -e 's/:/;/g' | cut -d ";" -f 2)
+eth2_rx=$(cat ~/rs_tmp/mikr_band_tmp.txt | grep fp-rx-bits-per-second | sed -e 's/ //g' -e 's/bps/;/g' -e 's/:/;/g' | cut -d ";" -f 3)
+eth1_tx=$(cat ~/rs_tmp/mikr_band_tmp.txt | grep fp-tx-bits-per-second | sed -e 's/ //g' -e 's/bps/;/g' -e 's/:/;/g' | cut -d ";" -f 2)
+eth2_tx=$(cat ~/rs_tmp/mikr_band_tmp.txt | grep fp-tx-bits-per-second | sed -e 's/ //g' -e 's/bps/;/g' -e 's/:/;/g' | cut -d ";" -f 3)
 
+echo $eth1_rx $eth2_rx $eth1_tx $eth2_tx
 
-echo $eth1 $eth2
-
-if [[ $eth1 =~ [0-9|.]*b ]]; then eth1=0
-elif [[ $eth1 =~ [0-9|.]*k ]]; then eth1=1
-elif [[ $eth1 =~ [0-9|.]*M ]]; then eth1=$(echo $eth1 | sed -r 's/[^[0-9]*$//')
-elif [[ $eth1 == 0 ]]; then eth1=0
-else eth1=0
+if [[ $eth1_rx =~ [0-9|.]*b ]]; then eth1_rx=0
+elif [[ $eth1_rx =~ [0-9|.]*k ]]; then eth1_rx=1
+elif [[ $eth1_rx =~ [0-9|.]*M ]]; then eth1_rx=$(echo $eth1_rx | sed -r 's/[^[0-9]*$//')
+elif [[ $eth1_rx == 0 ]]; then eth1_rx=0
+else eth1_rx=0
 fi
 
-if [[ $eth2 =~ [0-9|.]*b ]]; then eth2=0
-elif [[ $eth2 =~ [0-9|.]*k ]]; then eth2=1
-elif [[ $eth2 =~ [0-9|.]*M ]]; then eth2=$(echo $eth2 | sed -r 's/[^[0-9]*$//')
-elif [[ $eth2 == 0 ]]; then eth2=0
-else eth2=0
+if [[ $eth2_rx =~ [0-9|.]*b ]]; then eth2_rx=0
+elif [[ $eth2_rx =~ [0-9|.]*k ]]; then eth2_rx=1
+elif [[ $eth2_rx =~ [0-9|.]*M ]]; then eth2_rx=$(echo $eth2_rx | sed -r 's/[^[0-9]*$//')
+elif [[ $eth2_rx == 0 ]]; then eth2_rx=0
+else eth2_rx=0
 fi
-band=$(echo "$eth1 - $eth2" | bc)
 
-echo "eth1=$eth1
-eth2=$eth2
+if [[ $eth1_tx =~ [0-9|.]*b ]]; then eth1_tx=0
+elif [[ $eth1_tx =~ [0-9|.]*k ]]; then eth1_tx=1
+elif [[ $eth1_tx =~ [0-9|.]*M ]]; then eth1_tx=$(echo $eth1_tx | sed -r 's/[^[0-9]*$//')
+elif [[ $eth1_tx == 0 ]]; then eth1_tx=0
+else eth1_tx=0
+fi
+
+if [[ $eth2_tx =~ [0-9|.]*b ]]; then eth2_tx=0
+elif [[ $eth2_tx =~ [0-9|.]*k ]]; then eth2_tx=1
+elif [[ $eth2_tx =~ [0-9|.]*M ]]; then eth2_tx=$(echo $eth2_tx | sed -r 's/[^[0-9]*$//')
+elif [[ $eth2_tx == 0 ]]; then eth2_tx=0
+else eth2_tx=0
+fi
+
+band=$(echo "($eth1_rx + $eth1_tx) - ($eth2_rx + $eth2_tx)" | bc)
+
+echo "eth1_rx=$eth1_rx
+eth2_rx=$eth2_rx
+eth1_tx=$eth1_tx
+eh2_tx=$eth2_tx
 bandwidth=$band"
 
 rm -r ~/rs_tmp
