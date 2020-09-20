@@ -1,0 +1,47 @@
+#! /bin/bash
+
+source /bin/rsaver/rsaver.cfg
+cd /tmp/rsaver_tmp
+touch topic_helped
+
+topic_c=$(cat NH_topics | wc -l )
+avail_m=$(df -h --output="avail" /dev/sda1 | awk NR==2 | sed -r 's/[^[0-9]*$//')
+size_all=0
+rw=0
+
+while true; do
+	free=$(echo "$avail_m - $size_all" | bc)
+	rand_n=$(shuf -i 1-$topic_c -n 1 )
+	topic_line=$(cat NH_topics | awk NR==$rand_n)
+	topic=$(echo $topic_line | cut -d ";" -f 1)
+	magnet=$(echo $topic_line | cut -d ";" -f 2 | sed -r 's/\"//g')
+	size=$(echo $topic_line | cut -d ";" -f 3)
+	if (($(echo "$size < $free" | bc) ==1)); then
+		if cat topic_helped | grep --quiet $topic; then
+			if [ $rw -lt 1000 ];then
+				rw=$(($rw + 1))
+				continue
+			else
+				echo Too much topics is helped
+				sleep 20
+				tail -100 topic_helped > topic_helped_tmp
+				rm topic_helped
+				mv topic_helped_tmp topic_helped
+				rm topic_helped_tmp
+				rw=0
+			fi
+		elif ! [ -s topic_helped ]; then
+			echo Saved_topics: > topic_helped
+			continue
+		else
+			echo "DEBUG DOWNLOADING Topic: $topic Size: $size Magnet=$magnet Free: $free"
+			transmission-remote -n ${t_remote_user}:$t_remote_paswd -a $magnet
+			size_all=$(echo "$size_all + $size" | bc)
+			echo "$topic" >> topic_helped
+		fi
+	else 
+		break
+	fi
+done
+		
+

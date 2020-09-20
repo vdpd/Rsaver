@@ -1,15 +1,17 @@
 #! /bin/bash
 
+source ./rsaver.cfg
+
 # initializing tmp folder, and verifying created one.
 
-if [ -d /tmp/rutr_saver_tmp ]; then
-	cd /tmp/rutr_saver_tmp
+if [ -d /tmp/rsaver_tmp ]; then
+	cd /tmp/rsaver_tmp
 else
-	mkdir /tmp/rutr_saver_tmp
-	cd /tmp/rutr_saver_tmp
+	mkdir /tmp/rsaver_tmp
+	cd /tmp/rsaver_tmp
 fi
-if ! [ -d /var/log/rutr_saver_log]; then
-	sudo mkdir /var/log/rutr_saver_log
+if ! [ -d /var/log/rsaver_log]; then
+	sudo mkdir /var/log/rsaver_log
 	sleep 30
 fi
 
@@ -43,7 +45,7 @@ until ((i == $forum_count));do
 	cat index_scrape | sort -n | uniq > index_scrape_sort
 	comm -13 index_scrape_sort uniq_scrape 2>/dev/null >> index_scrape
 	forum_count=$(cat index_scrape | wc -l)
-	sleep 0.2
+	sleep $sleep_t
 	((++i))
 done
 
@@ -54,7 +56,7 @@ cat index_scrape | sort -n | uniq > final_scrape && rm index_scrape
 # cleaning temp files & logging
 
 rm forum_scrape forum.html index_scrape_sort uniq_scrape
-echo "[DEBUG][SCRAPER] Forum scraping; Start: $start_time; End: $(date); Forums scraped $(cat final_scrape | wc -l); " >>/var/log/rutr_saver_log/rutrsaver.log
+echo "[DEBUG][SCRAPER] Forum scraping; Start: $start_time; End: $(date); Forums scraped $(cat final_scrape | wc -l); " >>/var/log/rsaver_log/rsaver.log
 
 # scraping pages for topic lists
 
@@ -72,7 +74,7 @@ until ((i == $forum_count));do
                         echo "Error 404: $error_p"
                         error_p=$devnull
                         pages=0
-                        sleep 0.5
+                        sleep $sleep_t
                         break
                 else
                         if [ -s page.html ]; then
@@ -86,13 +88,13 @@ until ((i == $forum_count));do
                                 break
                         fi
                 fi
-        sleep 0.5
+        sleep $sleep_t
         done
         ((++i))
 done
 
 cat page_scrape | sort -n | uniq > topic_scrape && rm page_scrape 
-echo "[DEBUG][SCRAPER] Topic scraping; Start: $start_time; End: $(date); Topics scraped: $(cat topic_scrape | wc -l);" >> /var/log/rutr_saver_log/rutrsaver.log
+echo "[DEBUG][SCRAPER] Topic scraping; Start: $start_time; End: $(date); Topics scraped: $(cat topic_scrape | wc -l);" >> /var/log/rsaver_log/rsaver.log
 
 # scraping topics and saving final file
 
@@ -104,7 +106,7 @@ until ((i == $topic_count));do
         topic_id=$(cat topic_scrape | awk NR==$i)
         clear
         echo "Scraping topic $i from $topic_count"
-        wget --output-document="topic.html" --load-cookies=/home/vdpd/wgetcookies.txt "https://rutracker.org/forum/viewtopic.php?t=$topic_id"
+        wget --output-document="topic.html" --load-cookies=$wget_cookies "https://rutracker.org/forum/viewtopic.php?t=$topic_id"
         if [ -s topic.html ]; then
                 t_seeds=$(iconv -f cp1251 topic.html | grep "Сиды" | cut -d ">" -f 3 | sed -r 's/[^[0-9]*$//')
                 t_size=$(iconv -f cp1251 topic.html | grep "Размер" | awk NR==1 | cut -d ">" -f 2  | sed -r 's/[^[0-9]*$//')
@@ -116,33 +118,33 @@ until ((i == $topic_count));do
                                  clear
                                  echo "Nice one!"
 				 t_nice=$(($t_nice + 1))
-                                 sleep 0.5
+                                 sleep $sleep_t
                         elif (($t_seeds != 1)); then
                                 clear
                                 echo "Seeds number is too low or too high"
-                                sleep 0.5
+                                sleep $sleep_t
 				t_bad=$(($t_bad + 1))
                         elif (($(echo "$t_size < 2" | bc) ==1)) || [ $t_degree != "GB" ]; then
                                 clear
                                 echo "Size is too small"
-                                sleep 0.5
+                                sleep $sleep_t
 				t_bad=$(($t_bad + 1))
                         elif (($(echo "$t_size > 50" | bc) ==1)); then
                                 clear
                                 echo "Size is too big"
-                                sleep 0.5
+                                sleep $sleep_t
 				t_bad=$(($t_bad + 1))
                         else
                                 clear
                                 echo "BAD conditions"
                                 echo "[ERROR][CONDITIONS]${topic_id};${t_magnet};${t_size}${t_degree};${t_seeds};" >> BAD_topics
-                                sleep 0.5
+                                sleep $sleep_t
 				t_bad=$(($t_bad + 1))
                         fi
                 else
                         clear
                         echo "BAD topic"
-                        sleep 0.5
+                        sleep $sleep_t
 			t_bad=$(($t_bad + 1))
                 fi
                 rm topic.html
@@ -155,4 +157,4 @@ until ((i == $topic_count));do
 done
 
 rm topic_scrape
-echo "[DEBUG][SCRAPER] Torrent scraping; Start: $start_time; End: $(date); Torrent scraped: $t_nice; Useless torrents: $t_bad" >> /var/log/rutr_saver_log/rutrsaver.log
+echo "[DEBUG][SCRAPER] Torrent scraping; Start: $start_time; End: $(date); Torrent scraped: $t_nice; Useless torrents: $t_bad" >> /var/log/rsaver_log/rsaver.log
