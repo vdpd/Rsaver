@@ -113,7 +113,7 @@ until ((i == $topic_count));do
                 t_degree=$(iconv -f cp1251 topic.html | grep "Размер" | awk NR==1 | cut -d ">" -f 2  | cut -d ";" -f 2 | sed -r 's/[^[B]*$//')
                 t_magnet=$(iconv -f cp1251 topic.html | grep magnet: | sed -r 's/^[^"]*//'| cut -d" " -f1)
                 if [ "$t_seeds" ] && [ "$t_size" ] && [ "$t_degree" ] && [ "$t_magnet" ]; then
-                        if (($t_seeds == 1)) && (($(echo "$t_size > 2" | bc) ==1)) && (($(echo "$t_size < 50" | bc) ==1)) && [ $t_degree == "GB" ] ; then
+                        if (($t_seeds == 1)) && (($(echo "$t_size > $t_size_min" | bc) ==1)) && (($(echo "$t_size < $t_size_max" | bc) ==1)) && [ $t_degree == "GB" ] ; then
                                  echo "${topic_id};${t_magnet};${t_size};" >> NH_topics
                                  clear
                                  echo "Nice one!"
@@ -124,12 +124,12 @@ until ((i == $topic_count));do
                                 echo "Seeds number is too low or too high"
                                 sleep $sleep_t
 				t_bad=$(($t_bad + 1))
-                        elif (($(echo "$t_size < 2" | bc) ==1)) || [ $t_degree != "GB" ]; then
+                        elif (($(echo "$t_size < $t_size_min" | bc) ==1)) || [ $t_degree != "GB" ]; then
                                 clear
                                 echo "Size is too small"
                                 sleep $sleep_t
 				t_bad=$(($t_bad + 1))
-                        elif (($(echo "$t_size > 50" | bc) ==1)); then
+                        elif (($(echo "$t_size > $t_size_max" | bc) ==1)); then
                                 clear
                                 echo "Size is too big"
                                 sleep $sleep_t
