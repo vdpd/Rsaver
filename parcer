@@ -2,19 +2,47 @@
 
 source ./rsaver.cfg
 
-# initializing tmp folder, and verifying created one.
-
-if [ -d /tmp/rsaver_tmp ]; then
-	cd /tmp/rsaver_tmp
+#Final file (NH_topics) rotation
+NH_rotate () {
+if [ -s NH_topics ];then
+        if [ -d ./log ];then
+                echo './log exists'
+                cat NH_topics > ./log/NH_topics_$(date +%F-%s)
+		rm *
+		echo "NH topics rotated"
+		sleep 1
+	else
+		mkdir ./log
+		cat NH_topics > ./log/NH_topics_$(date +%F-%s)
+                rm *
+		echo '/log initialized, NH topics rotated'
+		sleep 1
+	fi
 else
-	mkdir /tmp/rsaver_tmp
-	cd /tmp/rsaver_tmp
+	rm *
 fi
-if ! [ -d /var/log/rsaver_log]; then
-	sudo mkdir /var/log/rsaver_log
-	sleep 30
+}
+
+# initializing tmp folder, and verifying created one.
+if [ -d ./.r_tmp ]; then
+	echo './r_tmp exists'
+	cd ./.r_tmp && NH_rotate
+	sleep 1
+else
+	mkdir ./.r_tmp
+	cd ./.r_tmp
+	echo './r_tmp initialized'
+	sleep 1
 fi
 
+if [ -d /var/log/rsaver_log ]; then
+	echo '/var/log/exists'
+	sleep 1
+else
+	mkdir /var/log/rsaver_log
+	echo '/var/log/ initialized'
+	sleep 1
+fi
 
 start_time=$(date)
 
